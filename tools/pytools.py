@@ -44,6 +44,7 @@ def imgCaptioning(processor, model, b64str, saveImg = False):
     txt = processor.decode(out[0], skip_special_tokens=True)
     print(txt)
     txt = txt.replace(text,"")
+    print(txt)
     return tr.translate(txt)
 
 def getRecipees(search: str = "ayam panggang"):
