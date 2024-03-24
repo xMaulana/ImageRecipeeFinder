@@ -32,7 +32,7 @@ def openImageFromBase64(base64byt:str):
 
 
 def imgCaptioning(processor, model, b64str, saveImg = False):
-    text = "a photography of cooking ingredients that includes vegetables, fruit, spices, and sauces. Which all consist of "
+    text = "What vegetables, spices, sauces, fruits, or anythings that can be cooking ingredients inside this picture?"
     rimg = openImageFromBase64(b64str).convert("RGB")
     
     if saveImg:
