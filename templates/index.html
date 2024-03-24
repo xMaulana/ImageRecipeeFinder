@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Kelompok5{% endblock %}</title>  
+    <meta property="og:title" content="Kelompok5"/>
+    <meta property="og:type" content="article"/>
+    <meta property="og:url" content="https://sleepingowl.my.id/"/>
+    <meta property="og:image" content="https://sleepingowl.my.id/img/bg.png"/>
+    <meta property="og:description" content="Ini untuk tugas UTS"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    {% block styles %}
+    <link rel="stylesheet" href="/static/style/style.css">
+    {% endblock %}
+  </head>
+    <body>
+        {% block content %}
+        <div class="saran-form">
+            <h2>Login</h2>
+            <form action="#" method="get">
+              <div class="usr-box">
+                <input type="text" name="username" id="usrName" required />
+                <label>Username</label>
+              </div>
+              <div class="usr-box">
+                <input type="password" name="password" id="pwd" minlength="8" required>
+                <label>Password</label>
+              </div>
+              <p class="tanya" id="googlesign">SignIn dengan Google</p>
+              <a href="#" id="sbmtBtn">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                Submit
+              </a>
+            </form>
+          </div>
+          <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+          <script>
+            document.querySelector("a#sbmtBtn").addEventListener("click", (res) =>{
+                document.querySelector("form").submit()
+            })
+        
+            // document.querySelector("p.tanya").addEventListener("click", (has) =>{
+            //     Swal.fire({
+            //         icon: "error",
+            //         title: "Maaf!",
+            //         text: "Silahkan menghubungi admin"
+            //     })
+            //     // window.location.href = "/akun/registrasi"
+            // })
+        
+            document.addEventListener("keydown", ev =>{
+                if(ev.key == "Enter") document.querySelector("form").submit()
+            })
+          </script>
+        {% endblock %}
+        <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script type="module">
+          // Import the functions you need from the SDKs you need
+          import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+          import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-analytics.js";
+          import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+          import { firebaseConfig } from "/static/js/firebase.js"
+          // TODO: Add SDKs for Firebase products that you want to use
+          // https://firebase.google.com/docs/web/setup#available-libraries
+          // Your web app's Firebase configuration
+          // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+
+
+          // Initialize Firebase
+          const app = initializeApp(firebaseConfig);
+          const analytics = getAnalytics(app);
+          const auth = getAuth();
+          const pvd = new GoogleAuthProvider();
+
+          const googlesign = document.querySelector("#googlesign")
+          const signout = document.querySelector("#googleout")
+          let smail = sessionStorage.getItem("sessionEmail")?.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi,"")
+
+          onAuthStateChanged(auth, usr =>{
+            if(usr){
+              let usrnm = document.querySelector("#nameusr")
+              if(usrnm) usrnm.innerHTML = "Halo, "+ usr.displayName +"!"
+              if(window.location.pathname == "/"){
+                Swal.fire({
+                  icon:"success",
+                  title: "Anda Sudah Login",
+                  showConfirmButton: true
+                })
+                setTimeout(() => window.location.href = "/home", 1500)
+              }
+
+              if(!smail){
+                sessionStorage.setItem("sessionKeyAccess", usr.accessToken)
+                sessionStorage.setItem("sessionEmail", usr.email)
+
+                smail = sessionStorage.getItem("sessionEmail")?.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi,"")
+              }
+            }else{
+              if(window.location.pathname != "/"){
+                window.location.href = "/"
+              }
+            }
+          })
+
+          const usrSignIn = async () =>{
+            signInWithPopup(auth, pvd)
+            .then(res=>{
+              console.log(res.user)
+              sessionStorage.setItem("sessionKeyAccess", res.user.accessToken)
+              sessionStorage.setItem("sessionEmail", res.user.email)
+            })
+            .catch(err=>{
+              console.log(`${err.code} ${err.message}`)
+            })
+          }
+
+          const usrSignOut = async() =>{
+            signOut(auth).then(() =>{
+              Swal.fire({
+                icon:"success",
+                title: "Berhasil Logout"
+              })
+            }).catch(err =>{
+              Swal.fire({
+                icon:"error",
+                title: "Gagal Logout"
+              })
+              console.log(`${err.code} ${err.message}`)
+            })
+          }
+
+          if(googlesign){
+            googlesign.addEventListener("click", usrSignIn)
+          }
+
+          if(signout){
+            signout.addEventListener("click", usrSignOut)
+          }
+          
+        </script>
+  <!-- {% block baseauth %}
+  <script type="module">
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+    const auth = getAuth();
+
+
+  </script>
+  {% endblock %} -->
+        <script>
+          document.addEventListener("contextmenu", (e)=> e.preventDefault())
+        </script>
+    </body>
+</html>

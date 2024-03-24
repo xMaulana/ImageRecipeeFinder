@@ -1,0 +1,265 @@
+{% extends "index.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/style/home-style.css">
+{% endblock %}
+{% block content%}
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="#">Kelompok 5</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" role="button" data-bs-toggle="dropdown" data-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNavDropdown">
+      <ul class="navbar-nav">
+        <li class="nav-item active">
+          <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/bookmark">Bookmark</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#" id="googleout">Sign Out</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#" id="nameusr"></a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+<div class="filesup">
+    <label for="images" class="drop-container" id="dropcontainer">
+        <span class="drop-title">Letakkan gambar disini</span>
+        atau
+        <input type="file" id="images" accept="image/*" required>
+    </label>
+</div>
+
+<div class="card-container" id="cardctr">
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-analytics.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-database.js";
+    import { firebaseConfig } from "/static/js/firebase.js"
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const auth = getAuth();
+    const db = getDatabase(app);
+
+    const dropContainer = document.querySelector("#dropcontainer");
+    const fileInput = document.querySelector("#images");
+    const cardctr = document.querySelector("#cardctr");
+
+    dropContainer.addEventListener("dragover", (e) => {
+        e.preventDefault()
+    }, false)
+
+    dropContainer.addEventListener("dragenter", () => {
+        dropContainer.classList.add("drag-active")
+    })
+
+    dropContainer.addEventListener("dragleave", () => {
+        dropContainer.classList.remove("drag-active")
+    })
+
+    dropContainer.addEventListener("drop", (e) => {
+        e.preventDefault()
+        dropContainer.classList.remove("drag-active")
+        fileInput.files = e.dataTransfer.files
+    })
+
+
+    fileInput.addEventListener("change", async (e)=>{
+        let reader = new FileReader();
+        reader.readAsDataURL(fileInput.files[0]);
+
+        reader.onload = async (ev) =>{
+            try{
+                Swal.fire({
+                    title: 'Mohon tunggu!',
+                    html: 'Sedang mencari...',
+                    allowOutsideClick: false,
+                })
+                Swal.showLoading()
+                let hasil = await uploadFile(String(fileInput.files[0].name.split(".")[0]), reader.result.split(",")[1])
+                if(hasil["caption"].length < 2){
+                    Swal.close()
+                    Swal.fire({
+                        icon: "error",
+                        title: "Maaf!",
+                        text: "Data tidak ditemukan"
+                    })
+                }else{
+                    hasil = await updateList(hasil["caption"])
+                    console.log(hasil)
+                    Swal.close()
+                    Swal.fire({icon:"success"})
+                }
+                
+            }catch(err){
+                console.log(err.message)
+                swal.close()
+                Swal.fire({
+                        icon: "error",
+                        title: "Maaf!",
+                        text: "Terjadi kesalahan"
+                })
+            }
+        }
+
+        reader.onerror = (err)=> {
+                Swal.fire({
+                    icon: "error",
+                    title: "Maaf!",
+                    text: "Terjadi kesalahan"
+                })
+            }
+    })
+
+    const uploadFile = async (fname, data) =>{
+        let formdat = new FormData()
+        formdat.append("filename", fname)
+        formdat.append("filedata", data)
+        try{
+            let data = (await fetch("/getImageCaption", {
+                method: "POST",
+                body: formdat
+            }))
+            data = await data.json()
+
+            return data
+        } catch(err){
+            throw new Error("Terjadi masalah")
+        }
+    }
+
+    const updateList = async(bahan) =>{
+        let data = await fetch(`/getRecipees?bahan=${bahan}`)
+        data = await data.json()
+
+        let text = `
+        <center>
+            <h2>Hasil untuk: ${bahan}</h2>
+            <div class="container">
+                <div class="row">
+        `
+        if(data.hasil.status_code == 200){
+            data.hasil.hasil.forEach(res =>{
+                text += `
+                <div class="col-sm-6 col-md-4 mt-5">
+                    <div class="card bxsd" style="width: 13rem;">
+                                    <img src=${res.img}  class="card-img-top" alt="...">
+                                    <div class="card-body">
+                                    <h5 class="card-title">${res.title}</h5>
+                                    <p class="card-text">${res.ingri.replace("\s+", " ").replace("\n","").substring(0, 50) + "..."}</p>
+                                    <a href=${res.href} target="_blank"  class="btn btn-outline-danger">Selengkapnya</a>
+                                    <button type="button" class="btn btn-outline-success clicker-to-bookmark" data-href='${res.href}' data-title='${res.title}' data-ingri='${res.ingri.replace("\s+", " ").replace("\n","").substring(0, 50) + "..."}' data-img='${res.img}'>Bookmark</button>
+                                    </div>
+                                </div>
+                        </div>     
+                `
+            })
+        }
+            text += `    </div>
+            </div>
+            </center>`
+        
+            cardctr.innerHTML = text
+
+        let bookmarkbtn =  document.querySelectorAll(".clicker-to-bookmark")
+        let smail = sessionStorage.getItem("sessionEmail")?.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi,"")
+        let currVal = []
+
+        onValue(ref(db, "user/"+smail), snapshot =>{
+            currVal = snapshot.val()
+            if(currVal) currVal = currVal.bookmark
+        })
+
+        bookmarkbtn.forEach(el =>{
+            el.addEventListener("click", function(x){
+                x.preventDefault()
+                if(currVal == null){
+                    try{
+                        set(ref(db, "user/"+ smail),{
+                        bookmark: [{
+                            title: this.dataset.title,
+                            href: this.dataset.href,
+                            ingri: this.dataset.ingri,
+                            img: this.dataset.img
+                        }]
+                        })
+                        Swal.fire({
+                            icon:"success",
+                            title: "Sukses!",
+                            text: "Berhasil menambahkan ke Bookmark"
+                        })
+                    }catch(err){
+                        console.log(err.message)
+                        Swal.fire({
+                            icon:"error",
+                            title: "Error!",
+                            text: "Maaf! Terjadi kesalahan"
+                        })
+                    }
+                    
+                }else{
+                    let toPush = {
+                        title: this.dataset.title,
+                        href: this.dataset.href,
+                        ingri: this.dataset.ingri,
+                        img: this.dataset.img
+                    }
+
+                    if(checkInclude(toPush.href,currVal,"href")){
+                        Swal.fire({
+                            icon:"error",
+                            title: "Error!",
+                            text: "Maaf! Item sudah ada di Bookmark Anda"
+                        })
+                    }else{
+                        currVal.push(toPush)
+                        try{
+                            set(ref(db, "user/"+ smail),{
+                                bookmark: currVal
+                            })  
+
+                            Swal.fire({
+                                icon:"success",
+                                title: "Sukses!",
+                                text: "Berhasil menambahkan ke Bookmark"
+                            })
+                        }catch(err){
+                            Swal.fire({
+                                icon:"error",
+                                title: "Error!",
+                                text: "Maaf! Terjadi kesalahan"
+                            })
+                        }
+                        
+                    }
+                    
+                }
+            })
+        })
+        return data
+    }
+
+    const checkInclude = (string, arr, keys)=>{
+        let includ = false
+
+        arr.forEach(la =>{
+            if(la[keys] == string) includ = true
+        })
+
+        return includ
+    }
+
+  </script>
+{% endblock %}

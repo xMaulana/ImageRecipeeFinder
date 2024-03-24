@@ -1,0 +1,114 @@
+{% extends "home.html" %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="#">Kelompok 5</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" role="button" data-bs-toggle="dropdown" data-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNavDropdown">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" href="/home">Home <span class="sr-only">(current)</span></a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active" href="#">Bookmark</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#" id="googleout">Sign Out</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#" id="nameusr"></a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+  <center><h1>Bookmark</h1></center>
+  <div class="card-container" id="cardcon">
+
+  </div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-analytics.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-database.js";
+    import { firebaseConfig } from "/static/js/firebase.js"
+
+    const cardcon = document.querySelector("#cardcon")
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const auth = getAuth();
+    const db = getDatabase(app);
+
+    let currVal = []
+    let smail = sessionStorage.getItem("sessionEmail")?.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi,"")
+    onValue(ref(db, "user/"+smail), snapshot =>{
+        currVal = snapshot.val()
+        if(currVal){
+            currVal = currVal.bookmark
+
+            addCard(currVal, cardcon)
+
+            let delbutton = document.querySelectorAll(".clicker-to-delete")
+        
+            delbutton.forEach(el=>{
+                el.addEventListener("click", function(x){
+                    x.preventDefault()
+                    try{
+                        currVal.splice(this.dataset.index,1)
+                        addCard(currVal, cardcon)
+                        set(ref(db, "user/"+ smail),{
+                                    bookmark: currVal
+                                })  
+                        Swal.fire({
+                                icon:"success",
+                                title: "Sukses!",
+                                text: "Berhasil menghapus dari Bookmark"
+                        })
+                    }catch(err){
+                        console.log(err.message)
+                        Swal.fire({
+                                icon:"error",
+                                title: "Error!",
+                                text: "Maaf! Terjadi kesalahan"
+                        })
+                    }
+                })
+            })
+        }
+    })
+
+    const addCard = (x, elm)=>{
+        let text = `
+            <center>
+                <div class="container">
+                    <div class="row">
+            `
+
+            
+            x.forEach((dat,i)=>{
+                text += `
+                    <div class="col-sm-6 col-md-4 mt-5">
+                        <div class="card bxsd" style="width: 13rem;">
+                                        <img src=${dat.img}  class="card-img-top" alt="...">
+                                        <div class="card-body">
+                                        <h5 class="card-title">${dat.title}</h5>
+                                        <p class="card-text">${dat.ingri.replace("\s+", " ").replace("\n","").substring(0, 50) + "..."}</p>
+                                        <a href=${dat.href} target="_blank"  class="btn btn-outline-success">Selengkapnya</a>
+                                        <button type="button" class="btn btn-outline-danger clicker-to-delete" data-index='${i}'>Hapus</button>
+                                        </div>
+                                    </div>
+                            </div>     
+                    `
+            })
+
+            text += `    </div>
+                </div>
+                </center>`
+            
+            elm.innerHTML = text
+    }
+  </script>
+{% endblock %}
