@@ -32,7 +32,7 @@ def openImageFromBase64(base64byt:str):
 
 
 def imgCaptioning(processor, model, b64str, saveImg = False):
-    text = "a photography of cooking ingredients that include "
+    text = "a photography of foods, drinks, or cooking ingredients that include that include "
     rimg = openImageFromBase64(b64str).convert("RGB")
     
     if saveImg:
@@ -40,7 +40,7 @@ def imgCaptioning(processor, model, b64str, saveImg = False):
     
     inputs = processor(rimg, text, return_tensors="pt")
 
-    out = model.generate(**inputs, max_length=40)
+    out = model.generate(**inputs, max_length=70)
 
     return tr.translate(processor.decode(out[0], skip_special_tokens=True).replace(text,""))
 
