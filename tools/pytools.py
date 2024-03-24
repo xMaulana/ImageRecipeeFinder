@@ -32,7 +32,7 @@ def openImageFromBase64(base64byt:str):
 
 
 def imgCaptioning(processor, model, b64str, saveImg = False):
-    text = "Photography of cooking ingridients that by specific includes "
+    text = "Photography of cooking ingridients that by specific base material includes "
     rimg = openImageFromBase64(b64str).convert("RGB")
     
     if saveImg:
@@ -42,44 +42,49 @@ def imgCaptioning(processor, model, b64str, saveImg = False):
 
     out = model.generate(**inputs, max_length=200)
     txt = processor.decode(out[0], skip_special_tokens=True)
-    print(txt)
-    txt = txt.replace(text,"")
-    print(txt)
+    cmp = re.compile(re.escape(text), re.IGNORECASE)
+    txt = cmp.sub("", txt)
     return tr.translate(txt)
 
 def getRecipees(search: str = "ayam panggang"):
     ua = UserAgent()
     hasil = []
+    try:
+        res = requests.get(f"https://cookpad.com/id/cari/{search.replace(' ' , '+')}", headers= {"User-Agent": ua.random})
 
-    res = requests.get(f"https://cookpad.com/id/cari/{search.replace(' ' , '+')}", headers= {"User-Agent": ua.random})
+        bsoup = bs(res.text, "html.parser")
 
-    bsoup = bs(res.text, "html.parser")
+        alldata = bsoup.find("div", {"class":"lg:items-start"}).find_all("li")
+        
+        for i in alldata:
+            dt = i.find("a", {"class": "block-link__main"})
+            img = i.find("div", {"class":"relative"})
+            img = img.find("picture").find("img") if img else None
+            ingri = i.find("div", {"data-ingredients-highlighter-target": "ingredients"})
+            ingri = ingri.text.strip() if ingri else None
+            if dt and img:
+                hasil.append({
+                    "title" : dt.text.strip(),
+                    "href" : f"https://www.cookpad.com{dt['href']}",
+                    "img": img['src'].replace("130x160cq50","512x512cq50"),
+                    "ingri": ingri
+                    })
 
-    alldata = bsoup.find("div", {"class":"lg:items-start"}).find_all("li")
-    
-    for i in alldata:
-        dt = i.find("a", {"class": "block-link__main"})
-        img = i.find("div", {"class":"relative"})
-        img = img.find("picture").find("img") if img else None
-        ingri = i.find("div", {"data-ingredients-highlighter-target": "ingredients"})
-        ingri = ingri.text.strip() if ingri else None
-        if dt and img:
-            hasil.append({
-                "title" : dt.text.strip(),
-                "href" : f"https://www.cookpad.com{dt['href']}",
-                "img": img['src'].replace("130x160cq50","512x512cq50"),
-                "ingri": ingri
-                })
-
-    if len(hasil) < 1:
+        if len(hasil) < 1:
+            return {
+                "status_code": res.status_code,
+                "msg": "error",
+                "hasil": "Tidak ada hasil yang ditemukan"
+            }
+        
         return {
             "status_code": res.status_code,
-            "msg": "error",
-            "hasil": "Tidak ada hasil yang ditemukan"
+            "msg": "success",
+            "hasil": hasil
         }
-    
-    return {
-        "status_code": res.status_code,
-        "msg": "success",
-        "hasil": hasil
-    }
+    except:
+        return {
+                "status_code": 404,
+                "msg": "error",
+                "hasil": "Tidak ada hasil yang ditemukan"
+            }
