@@ -40,7 +40,7 @@ def imgCaptioning(processor, model, b64str, saveImg = False):
     
     inputs = processor(rimg, text, return_tensors="pt")
 
-    out = model.generate(**inputs, max_length=70)
+    out = model.generate(**inputs, max_length=200)
 
     return tr.translate(processor.decode(out[0], skip_special_tokens=True).replace(text,""))
 
