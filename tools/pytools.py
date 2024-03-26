@@ -55,10 +55,10 @@ def getRecipees(search: str = "ayam panggang"):
         bsoup = bs(res.text, "html.parser")
 
         alldata = bsoup.find("div", {"class":"lg:items-start"}).find_all("li")
-        
         for i in alldata:
             dt = i.find("a", {"class": "block-link__main"})
-            img = i.find("div", {"class":"relative"})
+            img = i.find("div", {"class" : "xs:w-auto"})
+            # img = i.find_all("div")[1]
             img = img.find("picture").find("img") if img else None
             ingri = i.find("div", {"data-ingredients-highlighter-target": "ingredients"})
             ingri = ingri.text.strip() if ingri else None
@@ -72,17 +72,21 @@ def getRecipees(search: str = "ayam panggang"):
 
         if len(hasil) < 1:
             return {
-                "status_code": res.status_code,
+                "status_code": 500,
                 "msg": "error",
-                "hasil": "Tidak ada hasil yang ditemukan"
+                "hasil": [{"title": "Unknown",
+                            "href":  "#",
+                            "ingri": "Unknown",
+                            "img": "Unknown"}]
             }
         
         return {
-            "status_code": res.status_code,
+            "status_code": 200,
             "msg": "success",
             "hasil": hasil
         }
-    except:
+    except Exception as e:
+        print(e)
         return {
                 "status_code": 404,
                 "msg": "error",
